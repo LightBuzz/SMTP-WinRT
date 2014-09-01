@@ -18,7 +18,7 @@ Import the assembly to your project and include its namespace:
 	EmailClient client = new EmailClient
 	{
       		Server = "example.com",
-		Port = 25,
+      		Port = 25,
 	        Username = "info@example.com",
 	        Password = "Pa$$w0rd",
 	        From = "you@example.com",
@@ -31,14 +31,16 @@ Import the assembly to your project and include its namespace:
   	await client.SendAsync();
   
 ### Credentials for Gmail
-  Server: smtp.gmail.com
-  Port: 465
-  SSL: True
+
+	Server: smtp.gmail.com
+  	Port: 465
+  	SSL: True
   
 ### Credentials for Outlook
-  Server: smtp-mail.outlook.com
-  Port: 587
-  SSL: False (upgarde SSL after STARTTLS)
+
+	Server: smtp-mail.outlook.com
+  	Port: 587
+  	SSL: False (upgarde SSL after STARTTLS)
 
 ## Contributors
 * [Vangos Pterneas](http://pterneas.com) from [LightBuzz](http://lightbuzz.com)
