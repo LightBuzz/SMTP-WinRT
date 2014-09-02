@@ -37,6 +37,9 @@ using System.Threading.Tasks;
 
 namespace LightBuzz.SMTP
 {
+    /// <summary>
+    /// Encapsulates a simple email client for WinRT.
+    /// </summary>
     public class EmailClient
     {
         #region Properties
@@ -100,6 +103,26 @@ namespace LightBuzz.SMTP
             SmtpMessage message = new SmtpMessage(From, To, null, Subject, Message);
 
             bool result = await client.SendMail(message);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Sends the specified email message.
+        /// </summary>
+        /// <param name="from">The sender's email address.</param>
+        /// <param name="to">The receiver's email address.</param>
+        /// <param name="subject">The subject line of the email.</param>
+        /// <param name="message">The message body of the email.</param>
+        /// <returns>True if the message was sent successfully. False otherwise.</returns>
+        public async Task<bool> SendAsync(string from, string to, string subject, string message)
+        {
+            From = from;
+            To = to;
+            Subject = subject;
+            Message = message;
+
+            bool result = await SendAsync();
 
             return result;
         }

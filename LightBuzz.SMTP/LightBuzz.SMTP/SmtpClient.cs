@@ -98,6 +98,13 @@ namespace LightBuzz.SMTP
         /// <summary>
         /// Creates a new SMTP client.
         /// </summary>
+        public SmtpClient()
+        {
+        }
+
+        /// <summary>
+        /// Creates a new SMTP client.
+        /// </summary>
         /// <param name="server">The server host.</param>
         /// <param name="port">The server port (usually 25).</param>
         public SmtpClient(string server, int port)
@@ -153,15 +160,14 @@ namespace LightBuzz.SMTP
 
                 Socket = new SmtpSocket(Server, Port, SSL, Username, Password);
 
-                var response = await Socket.EstablishConnection();
+                SmtpResponse response = await Socket.EstablishConnection();
 
-                if (response.ContainsStatus(SmtpCode.ServiceReady))
+                if (response.Contains(SmtpCode.ServiceReady))
                 {
                     IsConnected = true;
 
                     return true;
                 }
-
             }
             catch
             {
@@ -185,11 +191,11 @@ namespace LightBuzz.SMTP
             // get the type of auth
             SmtpResponse response = await Socket.Send("EHLO " + Server);
 
-            if (response.ContainsMessage("STARTTLS"))
+            if (response.Contains("STARTTLS"))
             {
                 SmtpResponse responseSSL = await Socket.Send("STARTTLS");
 
-                if (responseSSL.ContainsStatus(SmtpCode.ServiceReady))
+                if (responseSSL.Contains(SmtpCode.ServiceReady))
                 {
                     await Socket.UpgradeToSslAsync();
 
@@ -197,13 +203,13 @@ namespace LightBuzz.SMTP
                 }
             }
 
-            if (response.ContainsMessage("AUTH"))
+            if (response.Contains("AUTH"))
             {
-                if (response.ContainsMessage("LOGIN"))
+                if (response.Contains("LOGIN"))
                 {
                     IsAuthenticated = await AuthenticateByLogin();
                 }
-                else if (response.ContainsMessage("PLAIN"))
+                else if (response.Contains("PLAIN"))
                 {
                     IsAuthenticated = await AuthenticateByPlain();
                 }
@@ -232,21 +238,21 @@ namespace LightBuzz.SMTP
 
             SmtpResponse response = await Socket.Send("Auth Login");
 
-            if (!response.ContainsStatus(SmtpCode.WaitingForAuthentication))
+            if (!response.Contains(SmtpCode.WaitingForAuthentication))
             {
                 return false;
             }
 
             SmtpResponse responseUsername = await Socket.Send(Convert.ToBase64String(Encoding.UTF8.GetBytes(Username)));
 
-            if (!responseUsername.ContainsStatus(SmtpCode.WaitingForAuthentication))
+            if (!responseUsername.Contains(SmtpCode.WaitingForAuthentication))
             {
                 return false;
             }
 
             SmtpResponse responsePassword = await Socket.Send(Convert.ToBase64String(Encoding.UTF8.GetBytes(Password)));
 
-            if (!responsePassword.ContainsStatus(SmtpCode.AuthenticationSuccessful))
+            if (!responsePassword.Contains(SmtpCode.AuthenticationSuccessful))
             {
                 return false;
             }
@@ -267,7 +273,7 @@ namespace LightBuzz.SMTP
 
             SmtpResponse response = await Socket.Send("Auth Plain");
 
-            if (!response.ContainsStatus(SmtpCode.WaitingForAuthentication))
+            if (!response.Contains(SmtpCode.WaitingForAuthentication))
             {
                 return false;
             }
@@ -276,7 +282,7 @@ namespace LightBuzz.SMTP
 
             SmtpResponse responseAuth = await Socket.Send(Convert.ToBase64String(Encoding.UTF8.GetBytes(lineAuthentication)));
 
-            if (!responseAuth.ContainsStatus(SmtpCode.AuthenticationSuccessful))
+            if (!responseAuth.Contains(SmtpCode.AuthenticationSuccessful))
             {
                 return false;
             }
@@ -292,7 +298,6 @@ namespace LightBuzz.SMTP
         /// <returns>True if the email was sent successfully. False otherwise.</returns>
         public async Task<bool> SendMail(SmtpMessage message)
         {
-
             if (!IsConnected)
             {
                 await Connect();
@@ -310,7 +315,7 @@ namespace LightBuzz.SMTP
 
             SmtpResponse response = await Socket.Send(string.Format("Mail From:<{0}>", message.From));
 
-            if (!response.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+            if (!response.Contains(SmtpCode.RequestedMailActionCompleted))
             {
                 return false;
             }
@@ -319,7 +324,7 @@ namespace LightBuzz.SMTP
             {
                 SmtpResponse responseTo = await Socket.Send(String.Format("Rcpt To:<{0}>", to));
 
-                if (!responseTo.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+                if (!responseTo.Contains(SmtpCode.RequestedMailActionCompleted))
                 {
                     break;
                 }
@@ -327,78 +332,27 @@ namespace LightBuzz.SMTP
 
             SmtpResponse responseData = await Socket.Send(String.Format("Data"));
 
-            if (!responseData.ContainsStatus(SmtpCode.StartMailInput))
+            if (!responseData.Contains(SmtpCode.StartMailInput))
+            {
                 return false;
+            }
 
             SmtpResponse repsonseMessage = await Socket.Send(message.CreateMessageBody());
 
-            if (!repsonseMessage.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+            if (!repsonseMessage.Contains(SmtpCode.RequestedMailActionCompleted))
             {
                 return false;
             }
 
             SmtpResponse responseQuit = await Socket.Send("Quit");
 
-            if (!responseQuit.ContainsStatus(SmtpCode.ServiceClosingTransmissionChannel))
+            if (!responseQuit.Contains(SmtpCode.ServiceClosingTransmissionChannel))
             {
                 return false;
             }
             
             return true;
         }
-
-        ///// <summary>
-        ///// get a response from server
-        ///// </summary>
-        //private async Task<List<SmtpLine>> GetResponse()
-        //{
-        //    List<SmtpLine> lines = new List<SmtpLine>();
-        //    using (MemoryStream ms = await GetResponseStream())
-        //    {
-        //        using (StreamReader sr = new StreamReader(ms))
-        //        {
-        //            while (!sr.EndOfStream)
-        //            {
-        //                var line = sr.ReadLine();
-
-        //                if (String.IsNullOrEmpty(line))
-        //                    break;
-
-        //                lines.Add(new SmtpLine(line));
-        //            }
-        //        }
-        //    }
-
-
-        //    return lines;
-        //}
-
-
-
-        //private async Task<MemoryStream> GetResponseStream()
-        //{
-        //    MemoryStream ms = new MemoryStream();
-
-        //    while (true)
-        //    {
-        //        await reader.LoadAsync(bufferLength);
-
-        //        if (reader.UnconsumedBufferLength == 0) { break; }
-
-        //        Int32 index = 0;
-        //        while (reader.UnconsumedBufferLength > 0)
-        //        {
-        //            ms.WriteByte(reader.ReadByte());
-        //            index = index + 1;
-        //        }
-
-        //        if (index == 0 || index < bufferLength)
-        //            break;
-        //    }
-
-        //    ms.Seek(0, SeekOrigin.Begin);
-        //    return ms;
-        //}
 
         #endregion
     }

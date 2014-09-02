@@ -46,6 +46,9 @@ using Windows.Storage.Streams;
 
 namespace LightBuzz.SMTP
 {
+    /// <summary>
+    /// Implements an SMTP socket.
+    /// </summary>
     public class SmtpSocket
     {
         #region Constants
@@ -115,17 +118,11 @@ namespace LightBuzz.SMTP
             {
                 _reader = new DataReader(_socket.InputStream);
                 _reader.InputStreamOptions = InputStreamOptions.Partial;
-
                 _writer = new DataWriter(_socket.OutputStream);
 
-                if (_ssl)
-                {
-                    await _socket.ConnectAsync(_host, _port.ToString(), SocketProtectionLevel.Tls10);
-                }
-                else
-                {
-                    await _socket.ConnectAsync(_host, _port.ToString(), SocketProtectionLevel.PlainSocket);
-                }
+                SocketProtectionLevel protection = _ssl ? SocketProtectionLevel.Tls10 : SocketProtectionLevel.PlainSocket;
+
+                await _socket.ConnectAsync(_host, _port.ToString(), protection);
 
                 return await GetResponse("Connect");
             }
@@ -133,7 +130,6 @@ namespace LightBuzz.SMTP
             {
                 return null;
             }
-
         }
 
         /// <summary>
@@ -168,7 +164,7 @@ namespace LightBuzz.SMTP
         /// <param name="bytes">The byte array to send.</param>
         /// <param name="command">The command to send.</param>
         /// <returns></returns>
-        public async Task<SmtpResponse> Send(Byte[] bytes, string command)
+        public async Task<SmtpResponse> Send(byte[] bytes, string command)
         {
             try
             {
@@ -182,7 +178,6 @@ namespace LightBuzz.SMTP
             {
                 return null;
             }
-
         }
 
         /// <summary>
@@ -193,21 +188,20 @@ namespace LightBuzz.SMTP
             if (_socket != null)
             {
                 _socket.Dispose();
+                _socket = null;
             }
 
             if (_reader != null)
             {
                 _reader.Dispose();
+                _reader = null;
             }
 
             if (_writer != null)
             {
                 _writer.Dispose();
+                _writer = null;
             }
-
-            _socket = null;
-            _reader = null;
-            _writer = null;
         }
 
         #endregion
@@ -306,9 +300,7 @@ namespace LightBuzz.SMTP
                         charPos++;
 
                     } while (charPos < charLen);
-
                 }
-
             }
             catch
             {
@@ -316,7 +308,6 @@ namespace LightBuzz.SMTP
             }
 
             return response;
-
         }
 
         private async Task<List<string>> GetResponse2()
@@ -341,7 +332,6 @@ namespace LightBuzz.SMTP
             return lines;
         }
 
-
         private async Task<MemoryStream> GetResponseStream()
         {
             MemoryStream ms = new MemoryStream();
@@ -364,6 +354,7 @@ namespace LightBuzz.SMTP
             }
 
             ms.Seek(0, SeekOrigin.Begin);
+
             return ms;
         }
 

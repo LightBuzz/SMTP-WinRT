@@ -69,27 +69,11 @@ namespace LightBuzz.SMTP
         #region Public methods
 
         /// <summary>
-        /// Returns a string representation of the SMTP values.
-        /// </summary>
-        /// <returns>The SMTP values string format.</returns>
-        public string GetMessages()
-        {
-            StringBuilder message = new StringBuilder();
-
-            foreach(var kvp in Values)
-            {
-                message.Append(kvp.Value);
-            }
-
-            return message.ToString();
-        }
-
-        /// <summary>
         /// Determines whether the SMTP response contains the specified status code.
         /// </summary>
         /// <param name="status">The SMTP code to check.</param>
         /// <returns>True if the response contains the code. False otherwise.</returns>
-        public bool ContainsStatus(SmtpCode status)
+        public bool Contains(SmtpCode status)
         {
             if (Values.Count == 0)
             {
@@ -104,10 +88,12 @@ namespace LightBuzz.SMTP
         /// </summary>
         /// <param name="message">The message to check.</param>
         /// <returns>True if the response contains the message. False otherwise.</returns>
-        public bool ContainsMessage(string message)
+        public bool Contains(string message)
         {
             if (Values.Count == 0)
+            {
                 return false;
+            }
 
             return Values.Any(kvp => kvp.Value.Contains(message));
         }
