@@ -44,7 +44,7 @@ Import the assembly to your project and include its namespace:
 
 ## Contributors
 * [Vangos Pterneas](http://pterneas.com) from [LightBuzz](http://lightbuzz.com)
-* [Sebastien Pertus](http://bit.ly/1q4focT) from [Microsoft](http://microsoft.com)
+* Based on code by [Sebastien Pertus](http://bit.ly/1q4focT) from [Microsoft](http://microsoft.com)
 
 ## Blog post
 Read the detailed post by Sebastien [here](http://bit.ly/1q4focT).
