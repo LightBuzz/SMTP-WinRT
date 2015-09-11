@@ -29,10 +29,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace LightBuzz.SMTP
@@ -70,14 +66,14 @@ namespace LightBuzz.SMTP
         public bool SSL { get; set; }
 
         /// <summary>
-        /// From email address.
+        /// From the mailbox object.
         /// </summary>
-        public string From { get; set; }
+        public MailBox From { get; set; }
 
         /// <summary>
-        /// To email address.
+        /// To mailbox object.
         /// </summary>
-        public string To { get; set; }
+        public MailBox To { get; set; }
 
         /// <summary>
         /// The subject line.
@@ -115,7 +111,7 @@ namespace LightBuzz.SMTP
         /// <param name="subject">The subject line of the email.</param>
         /// <param name="message">The message body of the email.</param>
         /// <returns>True if the message was sent successfully. False otherwise.</returns>
-        public async Task<bool> SendAsync(string from, string to, string subject, string message)
+        public async Task<bool> SendAsync(MailBox from, MailBox to, string subject, string message)
         {
             From = from;
             To = to;

@@ -28,70 +28,79 @@
 // WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-// Based on: http://bit.ly/1q4focT by Sebastien Pertus
-//
-
-using System.Collections.Generic;
-using System.Linq;
 
 namespace LightBuzz.SMTP
 {
     /// <summary>
-    /// Implements an SMTP response.
+    /// Mailbox is an object formed by an email address and a name
     /// </summary>
-    public class SmtpResponse
+    public class MailBox
     {
+        #region Members
+        
+        /// <summary>
+        /// See <see cref="EmailAddress">Address</see>
+        /// </summary>
+        private string _emailAddress;
+
+        /// <summary>
+        /// See <see cref="Name">Name</see>
+        /// </summary>
+        private string _name;
+        
+        #endregion
+
         #region Properties
 
         /// <summary>
-        /// The SMTP values.
+        /// Gets or sets the mailbox address.
         /// </summary>
-        public List<KeyValuePair<SmtpCode, string>> Values { get; set; }
-
-        #endregion
-
-        #region Constructor
-
-        /// <summary>
-        /// Creates a new instance of SmtpResponse.
-        /// </summary>
-        public SmtpResponse()
+        public string EmailAddress
         {
-            Values = new List<KeyValuePair<SmtpCode, string>>(); 
-        }
-
-        #endregion
-
-        #region Public methods
-
-        /// <summary>
-        /// Determines whether the SMTP response contains the specified status code.
-        /// </summary>
-        /// <param name="status">The SMTP code to check.</param>
-        /// <returns>True if the response contains the code. False otherwise.</returns>
-        public bool Contains(SmtpCode status)
-        {
-            if (Values.Count == 0)
+            get
             {
-                return false;
+                return _emailAddress;
             }
-
-            return Values.Any(kvp => kvp.Key == status);
+            set
+            {
+                _emailAddress = value;
+            }
         }
 
         /// <summary>
-        /// Specifies whether the SMTP response contains the specified message.
+        /// Gets or sets the mailbox name.
         /// </summary>
-        /// <param name="message">The message to check.</param>
-        /// <returns>True if the response contains the message. False otherwise.</returns>
-        public bool Contains(string message)
+        public string Name
         {
-            if (Values.Count == 0)
+            get
             {
-                return false;
+                return _name;
             }
+            set
+            {
+                _name = value;
+            }
+        }
+        #endregion
 
-            return Values.Any(kvp => kvp.Value.Contains(message));
+        #region Constructors
+
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+        public MailBox()
+        {
+        }
+
+        /// <summary>
+        /// Full constructor with both objects.
+        /// </summary>
+        /// <param name="name">The Name of the person.</param>
+        /// <param name="emailAddress">The Email address.</param>
+        public MailBox(string name, string emailAddress)
+        {
+            _name = name;
+            _emailAddress = emailAddress;
         }
 
         #endregion

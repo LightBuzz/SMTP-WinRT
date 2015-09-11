@@ -33,10 +33,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.Storage;
 
 namespace LightBuzz.SMTP
 {
@@ -61,12 +60,12 @@ namespace LightBuzz.SMTP
         /// <summary>
         /// The email sender address.
         /// </summary>
-        public string From { get; set; }
+        public MailBox From { get; set; }
 
         /// <summary>
         /// The list of the email receivers.
         /// </summary>
-        public List<string> To { get; set; }
+        public List<MailBox> To { get; set; }
 
         /// <summary>
         /// The boundary of the email.
@@ -81,12 +80,12 @@ namespace LightBuzz.SMTP
         /// <summary>
         /// The CC receivers.
         /// </summary>
-        public List<string> Cc { get; set; }
+        public List<MailBox> Cc { get; set; }
 
         /// <summary>
         /// The BCC receivers.
         /// </summary>
-        public List<string> Bcc { get; set; }
+        public List<MailBox> Bcc { get; set; }
 
         /// <summary>
         /// The priority of the email.
@@ -112,6 +111,14 @@ namespace LightBuzz.SMTP
         /// Content Type ("text/html" or "text/plain").
         /// </summary>
         public string ContentType { get; set; }
+        /// <summary>
+        /// Indicates that the email has an attacment
+        /// </summary>
+        public bool HasAttachments { get; set; }
+        /// <summary>
+        /// The atthacment files to attach to the email
+        /// </summary>
+        public List<string> AttachedFiles { get; set; }
 
         #endregion
 
@@ -128,29 +135,35 @@ namespace LightBuzz.SMTP
         /// <summary>
         /// Creates a new SMTP email message.
         /// </summary>
-        /// <param name="from">From email address.</param>
-        /// <param name="to">To email address.</param>
-        /// <param name="cc">CC email address.</param>
+        /// <param name="from">From Mail Box object.</param>
+        /// <param name="to">To Mail Box object.</param>
+        /// <param name="cc">CC Mailbox object.</param>
         /// <param name="subject">Subject line.</param>
         /// <param name="body">Message body.</param>
-        public SmtpMessage(string from, string to, string cc, string subject, string body)
+        /// <param name="filesToAttach">Files that has to be attached</param>
+        public SmtpMessage(MailBox from, MailBox to, MailBox cc, string subject, string body, List<string> filesToAttach=null)
         {
             Initialize();
 
             From = from;
             
-            if (!string.IsNullOrEmpty(to))
+            if (!String.IsNullOrEmpty(to.EmailAddress))
             {
                 To.Add(to);
             }
 
-            if (!string.IsNullOrEmpty(cc))
+            if (!string.IsNullOrEmpty(cc.EmailAddress))
             {
                 Cc.Add(cc);
             }
 
             Subject = subject;
             Body = body;
+            if (filesToAttach != null)
+            {
+                HasAttachments = true;
+                AttachedFiles = filesToAttach;
+            }
         }
 
         #endregion
@@ -161,9 +174,9 @@ namespace LightBuzz.SMTP
         /// Creates the SMTP message body.
         /// </summary>
         /// <returns>The string representation of the message.</returns>
-        public string CreateMessageBody()
+        public async Task<string> CreateMessageBody()
         {
-            if (string.IsNullOrEmpty(From))
+            if (From==null)
             {
                 throw new Exception("From field is missing.");
             }
@@ -177,33 +190,34 @@ namespace LightBuzz.SMTP
 
             message.AppendFormat("Date: {0}{1}", DateTime.Now.ToString(DATE_FORMAT), System.Environment.NewLine);
             message.AppendFormat("X-Priority: {0}{1}", ((byte)Priority).ToString(), System.Environment.NewLine);
-            message.AppendFormat("From: {0}{1}", From, System.Environment.NewLine);
+            message.AppendFormat("From: \"{0}\"<{1}>{2}", From.Name,From.EmailAddress, System.Environment.NewLine);
 
             message.Append("To: ");
 
             for (int i = 0; i < To.Count; i++)
             {
-                string to = To[i];
+                MailBox to = To[i];
                 string separator = i == To.Count - 1 ? Environment.NewLine : ", ";
 
-                message.AppendFormat("{0}{1}", to, separator);
+                message.AppendFormat("\"{0}\"<{1}>{2}", to.Name,to.EmailAddress, separator);
             }
-
-            message.Append("Cc: ");
-
+            if (Cc.Count>0) message.Append("Cc: ");
             for (int i = 0; i < Cc.Count; i++)
             {
-                string cc = Cc[i];
+                MailBox cc = Cc[i];
                 string separator = i == Cc.Count - 1 ? Environment.NewLine : ", ";
 
-                message.AppendFormat("{0}{1}", cc, separator);
+                message.AppendFormat("\"{0}\"<{1}>{2}", cc.Name,cc.EmailAddress, separator);
             }
-
-            message.AppendFormat("MIME-Version: 1.0{0}", Environment.NewLine);
-            message.AppendFormat("Content-Transfer-Encoding: {0}{1}", TransferEncoding, Environment.NewLine);
-            message.AppendFormat("Content-Disposition: inline{0}", Environment.NewLine);
+            if (Cc.Count > 0) message.AppendFormat("{0}", Environment.NewLine);
             message.AppendFormat("Subject: {0}{1}", Subject, Environment.NewLine);
-
+            message.AppendFormat("MIME-Version: 1.0{0}", Environment.NewLine);
+            if (HasAttachments)
+            {
+                message.AppendFormat("Content-Type: multipart/mixed; boundary=\"{0}\"{1}", Boundary, Environment.NewLine);
+                message.AppendFormat("{0}",Environment.NewLine);
+                message.AppendFormat("--{0}{1}", Boundary, Environment.NewLine);
+            }
             if (IsHtml)
             {
                 message.AppendFormat("Content-Type: text/html; {0}", System.Environment.NewLine);
@@ -211,11 +225,28 @@ namespace LightBuzz.SMTP
             else
             {
                 message.AppendFormat("Content-Type: text/plain; charset=\"{0}\"{1}", Encoding.WebName, System.Environment.NewLine);
+
             }
 
             message.Append(Environment.NewLine);
             message.Append(Body);
             message.Append(Environment.NewLine);
+            message.Append(Environment.NewLine);
+            foreach (string file in AttachedFiles)
+            {
+                message.AppendFormat("--{0}{1}", Boundary, Environment.NewLine);
+                message.AppendFormat("Content-Type: application/octet-stream;{0}", Environment.NewLine);
+                message.AppendFormat("Content-Transfer-Encoding: base64{0}", Environment.NewLine);
+                string filename = _findFileName(file);
+                message.AppendFormat("Content-Disposition: attachment; filename= \""+filename+"\" {0}", Environment.NewLine);
+                string fileEncoded=await _encodeToBase64(file);
+                message.Append(Environment.NewLine);
+                message.Append(fileEncoded);
+                message.Append(Environment.NewLine);
+            }
+            message.AppendFormat("--{0}--{1}", Boundary, Environment.NewLine);
+
+
             message.Append(".");
 
             return message.ToString();
@@ -224,14 +255,53 @@ namespace LightBuzz.SMTP
         #endregion
 
         #region Private methods
+        /// <summary>
+        /// Encode File to base 64
+        /// </summary>
+        /// <param name="filePath">The file path</param>
+        /// <returns>The encoded file</returns>
+        private async Task<string> _encodeToBase64(string filePath)
+        {
+            string encode = String.Empty;
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
+                string fileText = await FileIO.ReadTextAsync(file);
+                byte[] bytes = new byte[fileText.Length * sizeof(char)];
+                System.Buffer.BlockCopy(fileText.ToCharArray(), 0, bytes, 0, bytes.Length);
+                encode = Convert.ToBase64String(bytes);
+            }
+            return encode;
+        }
 
+        /// <summary>
+        /// Extract file Name from path
+        /// </summary>
+        /// <param name="filePath">The file path to process</param>
+        /// <returns>
+        /// The file name with the extension
+        /// </returns>
+        private string _findFileName(string filePath)
+        {
+            int position = filePath.LastIndexOf('/');
+            if (position == -1) position = filePath.LastIndexOf('\\');
+            if (position == -1)
+            {
+                throw new Exception("Cannot find attached file");
+            }
+            string fileName= filePath.Substring(position+1, filePath.Length - position -1);
+            return fileName;
+        }
+        /// <summary>
+        /// Inizialization of the message
+        /// </summary>
         private void Initialize()
         {
-            To = new List<string>();
-            Cc = new List<string>();
-            Bcc = new List<string>();
+            To = new List<MailBox>();
+            Cc = new List<MailBox>();
+            Bcc = new List<MailBox>();
             Priority = SmtpPriority.Normal;
-            Boundary = String.Format("_MESSAGE_ID_{0}", Guid.NewGuid().ToString());
+            Boundary = String.Format("KkK170891tpbkKk__FV_KKKkkkjjwq");
             TransferEncoding = "7bit";
             Encoding = Encoding.UTF8;
         }

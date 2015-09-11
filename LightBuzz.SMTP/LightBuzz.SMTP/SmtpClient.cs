@@ -32,15 +32,8 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Windows.Networking;
-using Windows.Networking.Sockets;
-using Windows.Storage.Streams;
 
 namespace LightBuzz.SMTP
 {
@@ -313,16 +306,16 @@ namespace LightBuzz.SMTP
                 await Authenticate();
             }
 
-            SmtpResponse response = await Socket.Send(string.Format("Mail From:<{0}>", message.From));
+            SmtpResponse response = await Socket.Send(string.Format("Mail From:<{0}>", message.From.EmailAddress));
 
             if (!response.Contains(SmtpCode.RequestedMailActionCompleted))
             {
                 return false;
             }
 
-            foreach (string to in message.To)
+            foreach (MailBox to in message.To)
             {
-                SmtpResponse responseTo = await Socket.Send(String.Format("Rcpt To:<{0}>", to));
+                SmtpResponse responseTo = await Socket.Send(String.Format("Rcpt To:<{0}>", to.EmailAddress));
 
                 if (!responseTo.Contains(SmtpCode.RequestedMailActionCompleted))
                 {
@@ -337,7 +330,7 @@ namespace LightBuzz.SMTP
                 return false;
             }
 
-            SmtpResponse repsonseMessage = await Socket.Send(message.CreateMessageBody());
+            SmtpResponse repsonseMessage = await Socket.Send(await message.CreateMessageBody());
 
             if (!repsonseMessage.Contains(SmtpCode.RequestedMailActionCompleted))
             {

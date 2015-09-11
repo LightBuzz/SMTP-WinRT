@@ -31,11 +31,6 @@
 // Based on: http://bit.ly/1q4focT by Sebastien Pertus
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LightBuzz.SMTP
 {
