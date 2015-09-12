@@ -33,6 +33,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -232,21 +234,22 @@ namespace LightBuzz.SMTP
             message.Append(Body);
             message.Append(Environment.NewLine);
             message.Append(Environment.NewLine);
-            foreach (string file in AttachedFiles)
+            if (HasAttachments)
             {
-                message.AppendFormat("--{0}{1}", Boundary, Environment.NewLine);
-                message.AppendFormat("Content-Type: application/octet-stream;{0}", Environment.NewLine);
-                message.AppendFormat("Content-Transfer-Encoding: base64{0}", Environment.NewLine);
-                string filename = _findFileName(file);
-                message.AppendFormat("Content-Disposition: attachment; filename= \""+filename+"\" {0}", Environment.NewLine);
-                string fileEncoded=await _encodeToBase64(file);
-                message.Append(Environment.NewLine);
-                message.Append(fileEncoded);
-                message.Append(Environment.NewLine);
+                foreach (string file in AttachedFiles)
+                {
+                    message.AppendFormat("--{0}{1}", Boundary, Environment.NewLine);
+                    message.AppendFormat("Content-Type: application/octet-stream;{0}", Environment.NewLine);
+                    message.AppendFormat("Content-Transfer-Encoding: base64{0}", Environment.NewLine);
+                    string filename = _findFileName(file);
+                    message.AppendFormat("Content-Disposition: attachment; filename= \"" + filename + "\" {0}", Environment.NewLine);
+                    string fileEncoded = await _encodeToBase64(file);
+                    message.Append(Environment.NewLine);
+                    message.Append(fileEncoded);
+                    message.Append(Environment.NewLine);
+                }
+                message.AppendFormat("--{0}--{1}", Boundary, Environment.NewLine);
             }
-            message.AppendFormat("--{0}--{1}", Boundary, Environment.NewLine);
-
-
             message.Append(".");
 
             return message.ToString();
