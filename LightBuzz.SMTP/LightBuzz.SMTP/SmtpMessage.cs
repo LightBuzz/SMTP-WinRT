@@ -154,7 +154,7 @@ namespace LightBuzz.SMTP
                 To.Add(to);
             }
 
-            if (!string.IsNullOrEmpty(cc.EmailAddress))
+            if (cc != null && !string.IsNullOrEmpty(cc.EmailAddress))
             {
                 Cc.Add(cc);
             }
