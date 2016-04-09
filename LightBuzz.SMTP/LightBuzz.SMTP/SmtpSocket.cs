@@ -46,7 +46,7 @@ namespace LightBuzz.SMTP
     /// <summary>
     /// Implements an SMTP socket.
     /// </summary>
-    public class SmtpSocket
+    internal class SmtpSocket : IDisposable
     {
         #region Constants
 
@@ -135,14 +135,7 @@ namespace LightBuzz.SMTP
         /// <returns></returns>
         public async Task UpgradeToSslAsync()
         {
-            try
-            {
-                await _socket.UpgradeToSslAsync(SocketProtectionLevel.Tls10, _host);
-            }
-            catch
-            {
-                throw;
-            }
+            await _socket.UpgradeToSslAsync(SocketProtectionLevel.Tls10, _host);
         }
 
         /// <summary>
@@ -180,7 +173,7 @@ namespace LightBuzz.SMTP
         /// <summary>
         /// Closes the socket connection.
         /// </summary>
-        public virtual void Close()
+        public void Dispose()
         {
             if (_socket != null)
             {

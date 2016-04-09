@@ -32,57 +32,61 @@
 //
 
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Email;
+using Windows.Foundation;
+using Windows.Storage.Streams;
 
 namespace LightBuzz.SMTP
 {
     /// <summary>
     /// Implements an SMTP client.
     /// </summary>
-    public class SmtpClient
+    public sealed class SmtpClient : IDisposable
     {
         #region Properties
 
         /// <summary>
         /// SMTP server.
         /// </summary>
-        public string Server { get; set; }
+        private string Server { get; set; }
 
         /// <summary>
         /// SMTP port (usually 25).
         /// </summary>
-        public int Port { get; set; }
-        
+        private int Port { get; set; }
+
         /// <summary>
         /// Server username.
         /// </summary>
-        public string Username { get; set; }
-        
+        private string Username { get; set; }
+
         /// <summary>
         /// Server password.
         /// </summary>
-        public string Password { get; set; }
-        
+        private string Password { get; set; }
+
         /// <summary>
         /// Secure connection (SSL/TLS).
         /// </summary>
-        public bool SSL { get; set; }
+        private bool SSL { get; set; }
         
         /// <summary>
         /// Specifies whether the client is connected to the server.
         /// </summary>
-        public bool IsConnected { get; set; }
+        private bool IsConnected { get; set; }
         
         /// <summary>
         /// Specifies whether the client is authenticated
         /// </summary>
-        public bool IsAuthenticated { get; set; }
+        private bool IsAuthenticated { get; set; }
         
         /// <summary>
         /// SMTP Socket.
         /// </summary>
-        public SmtpSocket Socket { get; set; }
+        private SmtpSocket Socket { get; set; }
 
         #endregion
 
@@ -91,9 +95,9 @@ namespace LightBuzz.SMTP
         /// <summary>
         /// Creates a new SMTP client.
         /// </summary>
-        public SmtpClient()
-        {
-        }
+        //public SmtpClient()
+        //{
+        //}
 
         /// <summary>
         /// Creates a new SMTP client.
@@ -138,16 +142,88 @@ namespace LightBuzz.SMTP
         #region Public methods
 
         /// <summary>
+        /// Sends the specified email message.
+        /// </summary>
+        /// <param name="message">The email message.</param>
+        /// <returns>True if the email was sent successfully. False otherwise.</returns>
+        public IAsyncOperation<bool> SendMail(EmailMessage message)
+        {
+            return SendMailHelper(message).AsAsyncOperation();
+        }
+
+        private async Task<bool> SendMailHelper(EmailMessage message)
+        {
+            if (!IsConnected)
+            {
+                await ConnectAsync();
+            }
+
+            if (!IsConnected)
+            {
+                throw new Exception("Can't connect to the SMTP server.");
+            }
+
+            if (!IsAuthenticated)
+            {
+                await AuthenticateAsync();
+            }
+
+            SmtpResponse response = await Socket.Send(string.Format("Mail From:<{0}>", Username));
+
+            if (!response.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+            {
+                return false;
+            }
+
+            foreach (EmailRecipient to in message.To)
+            {
+                SmtpResponse responseTo = await Socket.Send(string.Format("Rcpt To:<{0}>", to.Address));
+
+                if (!responseTo.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+                {
+                    break;
+                }
+            }
+
+            SmtpResponse responseData = await Socket.Send(string.Format("Data"));
+
+            if (!responseData.ContainsStatus(SmtpCode.StartMailInput))
+            {
+                return false;
+            }
+
+            SmtpResponse repsonseMessage = await Socket.Send(await BuildSmtpMailInput(message));
+
+            if (!repsonseMessage.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+            {
+                return false;
+            }
+
+            SmtpResponse responseQuit = await Socket.Send("Quit");
+
+            if (!responseQuit.ContainsStatus(SmtpCode.ServiceClosingTransmissionChannel))
+            {
+                return false;
+            }
+            
+            return true;
+        }
+
+        #endregion
+
+        #region Private methods
+
+        /// <summary>
         /// Connects to the server.
         /// </summary>
         /// <returns>True for successful connection. False otherwise.</returns>
-        public async Task<bool> Connect()
+        private async Task<bool> ConnectAsync()
         {
             try
             {
                 if (IsConnected)
                 {
-                    Socket.Close();
+                    Socket.Dispose();
                     IsConnected = false;
                 }
 
@@ -155,7 +231,7 @@ namespace LightBuzz.SMTP
 
                 SmtpResponse response = await Socket.EstablishConnection();
 
-                if (response.Contains(SmtpCode.ServiceReady))
+                if (response.ContainsStatus(SmtpCode.ServiceReady))
                 {
                     IsConnected = true;
 
@@ -174,7 +250,7 @@ namespace LightBuzz.SMTP
         /// Authenticates a socket client using the specified Username and Password.
         /// </summary>
         /// <returns>True if the client was successfully authenticated. False otherwise.</returns>
-        public async Task<bool> Authenticate()
+        private async Task<bool> AuthenticateAsync()
         {
             if (!IsConnected)
             {
@@ -184,27 +260,27 @@ namespace LightBuzz.SMTP
             // get the type of auth
             SmtpResponse response = await Socket.Send("EHLO " + Server);
 
-            if (response.Contains("STARTTLS"))
+            if (response.ContainsMessage("STARTTLS"))
             {
                 SmtpResponse responseSSL = await Socket.Send("STARTTLS");
 
-                if (responseSSL.Contains(SmtpCode.ServiceReady))
+                if (responseSSL.ContainsStatus(SmtpCode.ServiceReady))
                 {
                     await Socket.UpgradeToSslAsync();
 
-                    return await Authenticate();
+                    return await AuthenticateAsync();
                 }
             }
 
-            if (response.Contains("AUTH"))
+            if (response.ContainsMessage("AUTH"))
             {
-                if (response.Contains("LOGIN"))
+                if (response.ContainsMessage("LOGIN"))
                 {
-                    IsAuthenticated = await AuthenticateByLogin();
+                    IsAuthenticated = await AuthenticateByLoginAsync();
                 }
-                else if (response.Contains("PLAIN"))
+                else if (response.ContainsMessage("PLAIN"))
                 {
-                    IsAuthenticated = await AuthenticateByPlain();
+                    IsAuthenticated = await AuthenticateByPlainAsync();
                 }
             }
             else
@@ -215,14 +291,13 @@ namespace LightBuzz.SMTP
             }
 
             return IsAuthenticated;
-
         }
 
         /// <summary>
         /// Authenticates a socket client using login authentication.
         /// </summary>
         /// <returns>True if the client was successfully authenticated. False otherwise.</returns>
-        public async Task<bool> AuthenticateByLogin()
+        private async Task<bool> AuthenticateByLoginAsync()
         {
             if (!IsConnected)
             {
@@ -231,21 +306,21 @@ namespace LightBuzz.SMTP
 
             SmtpResponse response = await Socket.Send("Auth Login");
 
-            if (!response.Contains(SmtpCode.WaitingForAuthentication))
+            if (!response.ContainsStatus(SmtpCode.WaitingForAuthentication))
             {
                 return false;
             }
 
             SmtpResponse responseUsername = await Socket.Send(Convert.ToBase64String(Encoding.UTF8.GetBytes(Username)));
 
-            if (!responseUsername.Contains(SmtpCode.WaitingForAuthentication))
+            if (!responseUsername.ContainsStatus(SmtpCode.WaitingForAuthentication))
             {
                 return false;
             }
 
             SmtpResponse responsePassword = await Socket.Send(Convert.ToBase64String(Encoding.UTF8.GetBytes(Password)));
 
-            if (!responsePassword.Contains(SmtpCode.AuthenticationSuccessful))
+            if (!responsePassword.ContainsStatus(SmtpCode.AuthenticationSuccessful))
             {
                 return false;
             }
@@ -257,7 +332,7 @@ namespace LightBuzz.SMTP
         /// Authenticates a socket client using plain authentication.
         /// </summary>
         /// <returns>True if the client was successfully authenticated. False otherwise.</returns>
-        public async Task<Boolean> AuthenticateByPlain()
+        private async Task<bool> AuthenticateByPlainAsync()
         {
             if (!IsConnected)
             {
@@ -266,7 +341,7 @@ namespace LightBuzz.SMTP
 
             SmtpResponse response = await Socket.Send("Auth Plain");
 
-            if (!response.Contains(SmtpCode.WaitingForAuthentication))
+            if (!response.ContainsStatus(SmtpCode.WaitingForAuthentication))
             {
                 return false;
             }
@@ -275,78 +350,120 @@ namespace LightBuzz.SMTP
 
             SmtpResponse responseAuth = await Socket.Send(Convert.ToBase64String(Encoding.UTF8.GetBytes(lineAuthentication)));
 
-            if (!responseAuth.Contains(SmtpCode.AuthenticationSuccessful))
+            if (!responseAuth.ContainsStatus(SmtpCode.AuthenticationSuccessful))
             {
                 return false;
             }
 
             return true;
 
+        }
+
+        private async Task<string> BuildSmtpMailInput(EmailMessage message)
+        {
+            if (Username == null)
+            {
+                throw new Exception("From field is missing.");
+            }
+
+            if (message.To.Count == 0)
+            {
+                throw new Exception("To field is missing.");
+            }
+
+            StringBuilder mailInput = new StringBuilder();
+
+            mailInput.AppendFormat("Date: {0}{1}", DateTime.Now.ToString("ddd, dd MMM yyyy HH:mm:ss +0000"), System.Environment.NewLine);
+            mailInput.AppendFormat("X-Priority: {0}{1}", message.Importance.ToXPriority(), System.Environment.NewLine);
+            mailInput.AppendFormat("From: \"{0}\"<{1}>{2}", Username, Username, System.Environment.NewLine);
+
+            mailInput.AppendFormat("To: {0}{1}", string.Join(", ", message.To.Select(r => string.Format("\"{0}\"<{1}>", r.Name, r.Address))), Environment.NewLine);
+            if (message.CC.Any())
+            {
+                mailInput.AppendFormat("Cc: {0}{1}", string.Join(", ", message.CC.Select(r => string.Format("\"{0}\"<{1}>", r.Name, r.Address))), Environment.NewLine);
+            }
+            if (message.Bcc.Any())
+            {
+                mailInput.AppendFormat("Bcc: {0}{1}", string.Join(", ", message.Bcc.Select(r => string.Format("\"{0}\"<{1}>", r.Name, r.Address))), Environment.NewLine);
+            }
+
+            mailInput.AppendFormat("Subject: {0}{1}", message.Subject, Environment.NewLine);
+            mailInput.AppendFormat("MIME-Version: 1.0{0}", Environment.NewLine);
+
+            Guid boundary = Guid.NewGuid();
+            if (message.Attachments.Any())
+            {
+                mailInput.AppendFormat("Content-Type: multipart/mixed; boundary=\"{0}\"{1}", boundary, Environment.NewLine);
+                mailInput.AppendFormat("{0}", Environment.NewLine);
+                mailInput.AppendFormat("--{0}{1}", boundary, Environment.NewLine);
+            }
+            if (message.Body.StartsWith("<html>"))
+            {
+                mailInput.AppendFormat("Content-Type: text/html; {0}", Environment.NewLine);
+            }
+            else
+            {
+                mailInput.AppendFormat("Content-Type: text/plain; charset=\"{0}\"{1}", Encoding.UTF8.WebName, Environment.NewLine);
+            }
+
+            mailInput.Append(Environment.NewLine);
+            mailInput.Append(message.Body);
+            mailInput.Append(Environment.NewLine);
+            mailInput.Append(Environment.NewLine);
+
+            if (message.Attachments.Any())
+            {
+                foreach (EmailAttachment attachment in message.Attachments)
+                {
+                    mailInput.AppendFormat("--{0}{1}", boundary, Environment.NewLine);
+                    mailInput.AppendFormat("Content-Type: application/octet-stream;{0}", Environment.NewLine);
+                    mailInput.AppendFormat("Content-Transfer-Encoding: base64{0}", Environment.NewLine);
+                    mailInput.AppendFormat("Content-Disposition: attachment; filename= \"" + attachment.FileName + "\" {0}", Environment.NewLine);
+                    string fileEncoded = await _encodeToBase64(attachment.Data);
+                    mailInput.Append(Environment.NewLine);
+                    mailInput.Append(fileEncoded);
+                    mailInput.Append(Environment.NewLine);
+                }
+                mailInput.AppendFormat("--{0}--{1}", boundary, Environment.NewLine);
+            }
+            mailInput.Append(".");
+
+            return mailInput.ToString();
         }
 
         /// <summary>
-        /// Sends the specified email message.
+        /// Encode File to base 64
         /// </summary>
-        /// <param name="message">The email message.</param>
-        /// <returns>True if the email was sent successfully. False otherwise.</returns>
-        public async Task<bool> SendMail(SmtpMessage message)
+        /// <param name="filePath">The file path</param>
+        /// <returns>The encoded file</returns>
+        private async Task<string> _encodeToBase64(IRandomAccessStreamReference data)
         {
-            if (!IsConnected)
+            string encode = string.Empty;
+            using (IRandomAccessStreamWithContentType stream = await data.OpenReadAsync())
             {
-                await Connect();
-            }
-
-            if (!IsConnected)
-            {
-                throw new Exception("Can't connect to the SMTP server.");
-            }
-
-            if (!IsAuthenticated)
-            {
-                await Authenticate();
-            }
-
-            SmtpResponse response = await Socket.Send(string.Format("Mail From:<{0}>", message.From.EmailAddress));
-
-            if (!response.Contains(SmtpCode.RequestedMailActionCompleted))
-            {
-                return false;
-            }
-
-            foreach (MailBox to in message.To)
-            {
-                SmtpResponse responseTo = await Socket.Send(String.Format("Rcpt To:<{0}>", to.EmailAddress));
-
-                if (!responseTo.Contains(SmtpCode.RequestedMailActionCompleted))
+                using (DataReader reader = new DataReader(stream))
                 {
-                    break;
+                    await reader.LoadAsync((uint)stream.Size);
+
+                    byte[] bytes = new byte[reader.UnconsumedBufferLength];
+
+                    while (reader.UnconsumedBufferLength > 0)
+                    {
+                        reader.ReadBytes(bytes);
+                    }
+                    encode = Convert.ToBase64String(bytes);
                 }
             }
-
-            SmtpResponse responseData = await Socket.Send(String.Format("Data"));
-
-            if (!responseData.Contains(SmtpCode.StartMailInput))
-            {
-                return false;
-            }
-
-            SmtpResponse repsonseMessage = await Socket.Send(await message.CreateMessageBody());
-
-            if (!repsonseMessage.Contains(SmtpCode.RequestedMailActionCompleted))
-            {
-                return false;
-            }
-
-            SmtpResponse responseQuit = await Socket.Send("Quit");
-
-            if (!responseQuit.Contains(SmtpCode.ServiceClosingTransmissionChannel))
-            {
-                return false;
-            }
-            
-            return true;
+            return encode;
         }
-
         #endregion
+
+        public void Dispose()
+        {
+            if (Socket != null)
+            {
+                Socket.Dispose();
+            }
+        }
     }
 }
