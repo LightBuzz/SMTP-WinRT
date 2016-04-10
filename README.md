@@ -1,6 +1,6 @@
-# SMTP client for WinRT
+# SMTP client for Windows Store
 
-An SMTP client for WinRT. Send emails from within your Windows Universal App.
+An SMTP client for Windows Store apps (WinRT and Universal). Send emails from within your Windows Universal App.
 
 ## Installation
 You can download and build this project or simply install it via NuGet:
