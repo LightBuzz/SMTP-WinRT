@@ -9,11 +9,11 @@ namespace LightBuzz.SMTP
             switch(importance)
             {
                 case EmailImportance.Normal:
-                    return "1";
-                case EmailImportance.High:
-                    return "5";
-                case EmailImportance.Low:
                     return "3";
+                case EmailImportance.High:
+                    return "1";
+                case EmailImportance.Low:
+                    return "5";
             }
 
             return null;

@@ -72,17 +72,17 @@ namespace LightBuzz.SMTP
         /// Secure connection (SSL/TLS).
         /// </summary>
         private bool SSL { get; set; }
-        
+
         /// <summary>
         /// Specifies whether the client is connected to the server.
         /// </summary>
         private bool IsConnected { get; set; }
-        
+
         /// <summary>
         /// Specifies whether the client is authenticated
         /// </summary>
         private bool IsAuthenticated { get; set; }
-        
+
         /// <summary>
         /// SMTP Socket.
         /// </summary>
@@ -91,14 +91,6 @@ namespace LightBuzz.SMTP
         #endregion
 
         #region Constructors
-
-        /// <summary>
-        /// Creates a new SMTP client.
-        /// </summary>
-        //public SmtpClient()
-        //{
-        //}
-
         /// <summary>
         /// Creates a new SMTP client.
         /// </summary>
@@ -148,10 +140,10 @@ namespace LightBuzz.SMTP
         /// <returns>True if the email was sent successfully. False otherwise.</returns>
         public IAsyncOperation<bool> SendMail(EmailMessage message)
         {
-            return SendMailHelper(message).AsAsyncOperation();
+            return SendMailAsync(message).AsAsyncOperation();
         }
 
-        private async Task<bool> SendMailHelper(EmailMessage message)
+        private async Task<bool> SendMailAsync(EmailMessage message)
         {
             if (!IsConnected)
             {
@@ -205,7 +197,7 @@ namespace LightBuzz.SMTP
             {
                 return false;
             }
-            
+
             return true;
         }
 
@@ -227,7 +219,7 @@ namespace LightBuzz.SMTP
                     IsConnected = false;
                 }
 
-                Socket = new SmtpSocket(Server, Port, SSL, Username, Password);
+                Socket = new SmtpSocket(Server, Port, SSL);
 
                 SmtpResponse response = await Socket.EstablishConnection();
 
