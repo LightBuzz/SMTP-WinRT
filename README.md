@@ -7,6 +7,7 @@ You can download and build this project or simply install it via NuGet:
 	
 	PM> Install-Package lightbuzz-smtp
 
+This requires the 'internetClient' Capability to be enabled in the Package.appxmanifest of the universal app.
 ## Examples
 Import the assembly to your project and include its namespace:
 	
