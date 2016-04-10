@@ -39,14 +39,14 @@ namespace LightBuzz.SMTP
     /// <summary>
     /// Implements an SMTP response.
     /// </summary>
-    public class SmtpResponse
+    internal class SmtpResponse
     {
         #region Properties
 
         /// <summary>
         /// The SMTP values.
         /// </summary>
-        public List<KeyValuePair<SmtpCode, string>> Values { get; set; }
+        public IList<KeyValuePair<SmtpCode, string>> Values { get; set; }
 
         #endregion
 
@@ -69,7 +69,7 @@ namespace LightBuzz.SMTP
         /// </summary>
         /// <param name="status">The SMTP code to check.</param>
         /// <returns>True if the response contains the code. False otherwise.</returns>
-        public bool Contains(SmtpCode status)
+        public bool ContainsStatus(SmtpCode status)
         {
             if (Values.Count == 0)
             {
@@ -84,7 +84,7 @@ namespace LightBuzz.SMTP
         /// </summary>
         /// <param name="message">The message to check.</param>
         /// <returns>True if the response contains the message. False otherwise.</returns>
-        public bool Contains(string message)
+        public bool ContainsMessage(string message)
         {
             if (Values.Count == 0)
             {

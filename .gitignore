@@ -172,3 +172,5 @@ UpgradeLog*.htm
 
 # Microsoft Fakes
 FakesAssemblies/
+/LightBuzz.SMTP/.vs/config
+/LightBuzz.SMTP/LightBuzz.SMTP/project.lock.json

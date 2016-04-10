@@ -1,12 +1,13 @@
 # SMTP client for WinRT
 
-An SMTP client for WinRT. Send emails from within your Windows 8 and Windows Phone app.
+An SMTP client for WinRT. Send emails from within your Windows Universal App.
 
 ## Installation
 You can download and build this project or simply install it via NuGet:
 	
 	PM> Install-Package lightbuzz-smtp
 
+This requires the 'internetClient' Capability to be enabled in the Package.appxmanifest of the universal app.
 ## Examples
 Import the assembly to your project and include its namespace:
 	
@@ -15,26 +16,26 @@ Import the assembly to your project and include its namespace:
 ### Send an email message
 *This is an example of using your own SMTP server. Check below for using Gmail and Outlook.*
   
-	EmailClient client = new EmailClient
-	{
-      		Server = "example.com",
-      		Port = 25,
-	        Username = "info@example.com",
-	        Password = "Pa$$w0rd",
-	        From = "you@example.com",
-	        To = "someone@anotherdomain.com",
-	        SSL = false,
-	        Subject = "Subject line of your message",
-	        Message = "This is an email sent from a WinRT app!"
-  	};
-
-  	await client.SendAsync();
+  	using (SmtpClient client = new SmtpClient("example.com", 25, false, "info@example.com", "Pa$$w0rd")
+  	{
+	        EmailMessage emailMessage = new EmailMessage();
+	
+	        emailMessage.To.Add(new EmailRecipient("someone@anotherdomain.com"));
+	        emailMessage.Subject = "Subject line of your message";
+	        emailMessage.Body = "This is an email sent from a WinRT app!";
+	        
+	        await client.SendEmail(emailMessage);
+  	}
   
 ### Credentials for Gmail
 
 	Server: smtp.gmail.com
   	Port: 465
   	SSL: True
+  
+#### Important Note for Gmail
+
+	Since this does not use OAUTH2, Gmail considers this a "less secure app".  To use this with Gmail, the "Access for less secure apps" setting on the account will have to be changed to "Enable".
   
 ### Credentials for Outlook
 
@@ -46,6 +47,7 @@ Import the assembly to your project and include its namespace:
 * [Vangos Pterneas](http://pterneas.com) from [LightBuzz](http://lightbuzz.com)
 * [Alex Borghi](https://it.linkedin.com/pub/alessandro-borghi/75/957/493)
 * [Jochen Kalmbach](http://blog.kalmbach-software.de/)
+* [PrimalZed](https://github.com/PrimalZed)
 * Based on code by [Sebastien Pertus](http://bit.ly/1q4focT) from [Microsoft](http://microsoft.com)
 
 ## Blog post

@@ -46,7 +46,7 @@ namespace LightBuzz.SMTP
     /// <summary>
     /// Implements an SMTP socket.
     /// </summary>
-    public class SmtpSocket
+    internal class SmtpSocket : IDisposable
     {
         #region Constants
 
@@ -62,8 +62,6 @@ namespace LightBuzz.SMTP
         private DataWriter _writer;
         private int _port;
         private bool _ssl;
-        private string _username;
-        private string _password;
 
         #endregion
 
@@ -83,24 +81,6 @@ namespace LightBuzz.SMTP
             _ssl = ssl;
         }
 
-        /// <summary>
-        /// Creates a new instance of SmtpSocket.
-        /// </summary>
-        /// <param name="server">Server host name.</param>
-        /// <param name="port">Port (usually 25).</param>
-        /// <param name="ssl">SSL/TLS support.</param>
-        /// <param name="username">Server username.</param>
-        /// <param name="password">Server password.</param>
-        public SmtpSocket(string server, int port, bool ssl, string username, string password)
-        {
-            _host = new HostName(server);
-            _socket = new StreamSocket();
-            _port = port;
-            _ssl = ssl;
-            _username = username;
-            _password = password;
-        }
-
         #endregion
 
         #region Public methods
@@ -118,7 +98,6 @@ namespace LightBuzz.SMTP
                 _writer = new DataWriter(_socket.OutputStream);
 
                 SocketProtectionLevel protection = _ssl ? SocketProtectionLevel.Tls10 : SocketProtectionLevel.PlainSocket;
-
                 await _socket.ConnectAsync(_host, _port.ToString(), protection);
 
                 return await GetResponse("Connect");
@@ -135,14 +114,7 @@ namespace LightBuzz.SMTP
         /// <returns></returns>
         public async Task UpgradeToSslAsync()
         {
-            try
-            {
-                await _socket.UpgradeToSslAsync(SocketProtectionLevel.Tls10, _host);
-            }
-            catch
-            {
-                throw;
-            }
+            await _socket.UpgradeToSslAsync(SocketProtectionLevel.Tls10, _host);
         }
 
         /// <summary>
@@ -168,7 +140,7 @@ namespace LightBuzz.SMTP
                 _writer.WriteBytes(bytes);
 
                 await _writer.StoreAsync();
-                
+
                 return await GetResponse(command);
             }
             catch
@@ -180,7 +152,7 @@ namespace LightBuzz.SMTP
         /// <summary>
         /// Closes the socket connection.
         /// </summary>
-        public virtual void Close()
+        public void Dispose()
         {
             if (_socket != null)
             {
@@ -305,28 +277,6 @@ namespace LightBuzz.SMTP
             }
 
             return response;
-        }
-
-        private async Task<List<string>> GetResponse2()
-        {
-            List<String> lines = new List<string>();
-            using (MemoryStream ms = await GetResponseStream())
-            {
-                using (StreamReader sr = new StreamReader(ms))
-                {
-                    while (!sr.EndOfStream)
-                    {
-                        var line = sr.ReadLine();
-
-                        if (String.IsNullOrEmpty(line))
-                            break;
-
-                        lines.Add(line);
-                    }
-                }
-            }
-
-            return lines;
         }
 
         private async Task<MemoryStream> GetResponseStream()

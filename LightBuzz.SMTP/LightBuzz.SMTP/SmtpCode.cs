@@ -38,7 +38,7 @@ namespace LightBuzz.SMTP
     /// Enumerates the available SMTP codes.
     /// (Source: http://www.ietf.org/rfc/rfc2821.txt)
     /// </summary>
-    public enum SmtpCode : int
+    internal enum SmtpCode : int
     {
         None = 0,
         SystemStatus = 211,
