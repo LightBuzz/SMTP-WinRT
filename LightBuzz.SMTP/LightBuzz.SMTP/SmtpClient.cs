@@ -410,6 +410,12 @@ namespace LightBuzz.SMTP
                     mailInput.AppendFormat("--{0}{1}", boundary, Environment.NewLine);
                     mailInput.AppendFormat("Content-Type: application/octet-stream;{0}", Environment.NewLine);
                     mailInput.AppendFormat("Content-Transfer-Encoding: base64{0}", Environment.NewLine);
+                    if (attachment.ContentId != null)
+                    {
+                        mailInput.AppendFormat("Content-ID: {0}{1}", attachment.ContentId, Environment.NewLine);
+                    }
+                    var disposition = attachment.IsInline ? "inline" : "attachment";
+                    mailInput.AppendFormat("Content-Disposition: " + disposition + "; filename= \"" + attachment.FileName + "\" {0}", Environment.NewLine);
                     mailInput.AppendFormat("Content-Disposition: attachment; filename= \"" + attachment.FileName + "\" {0}", Environment.NewLine);
                     string fileEncoded = await _encodeToBase64(attachment.Data);
                     mailInput.Append(Environment.NewLine);
