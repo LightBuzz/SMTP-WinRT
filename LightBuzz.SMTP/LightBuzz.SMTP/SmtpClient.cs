@@ -427,7 +427,7 @@ namespace LightBuzz.SMTP
             }
             else
             {
-                mailInput.AppendFormat("Content-Type: text/plain; charset=\"{0}\"{1}", Encoding.Unicode.WebName, Environment.NewLine);
+                mailInput.AppendFormat("Content-Type: text/plain; charset=\"{0}\"{1}", Encoding.UTF8.WebName, Environment.NewLine);
             }
 
             mailInput.Append(Environment.NewLine);
