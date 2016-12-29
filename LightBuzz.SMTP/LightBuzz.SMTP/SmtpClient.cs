@@ -138,12 +138,7 @@ namespace LightBuzz.SMTP
         /// </summary>
         /// <param name="message">The email message.</param>
         /// <returns>True if the email was sent successfully. False otherwise.</returns>
-        public IAsyncOperation<bool> SendMail(EmailMessage message)
-        {
-            return SendMailAsync(message).AsAsyncOperation();
-        }
-
-        private async Task<bool> SendMailAsync(EmailMessage message)
+        public async Task<SmtpResult> SendMailAsync(EmailMessage message)
         {
             if (!IsConnected)
             {
@@ -152,7 +147,7 @@ namespace LightBuzz.SMTP
 
             if (!IsConnected)
             {
-                throw new Exception("Can't connect to the SMTP server.");
+                return SmtpResult.ConnectionFailed;
             }
 
             if (!IsAuthenticated)
@@ -160,14 +155,39 @@ namespace LightBuzz.SMTP
                 await AuthenticateAsync();
             }
 
+            if (!IsAuthenticated)
+            {
+                return SmtpResult.AuthenticationFailed;
+            }
+
             SmtpResponse response = await Socket.Send(string.Format("Mail From:<{0}>", Username));
 
             if (!response.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
             {
-                return false;
+                return SmtpResult.CouldNotCreateMail;
             }
 
             foreach (EmailRecipient to in message.To)
+            {
+                SmtpResponse responseTo = await Socket.Send(string.Format("Rcpt To:<{0}>", to.Address));
+
+                if (!responseTo.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+                {
+                    break;
+                }
+            }
+
+            foreach (EmailRecipient to in message.CC)
+            {
+                SmtpResponse responseTo = await Socket.Send(string.Format("Rcpt To:<{0}>", to.Address));
+
+                if (!responseTo.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
+                {
+                    break;
+                }
+            }
+
+            foreach (EmailRecipient to in message.Bcc)
             {
                 SmtpResponse responseTo = await Socket.Send(string.Format("Rcpt To:<{0}>", to.Address));
 
@@ -181,24 +201,36 @@ namespace LightBuzz.SMTP
 
             if (!responseData.ContainsStatus(SmtpCode.StartMailInput))
             {
-                return false;
+                return SmtpResult.CouldNotCreateMail;
             }
 
             SmtpResponse repsonseMessage = await Socket.Send(await BuildSmtpMailInput(message));
 
             if (!repsonseMessage.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
             {
-                return false;
+                return SmtpResult.CouldNotCreateMail;
             }
 
             SmtpResponse responseQuit = await Socket.Send("Quit");
 
             if (!responseQuit.ContainsStatus(SmtpCode.ServiceClosingTransmissionChannel))
             {
-                return false;
+                return SmtpResult.CouldNotCloseTransmissionChannel;
             }
 
-            return true;
+            return SmtpResult.OK;
+        }
+
+        /// <summary>
+        /// [deprecated] Sends the specified email message. Use <see cref="SendMailAsync(EmailMessage)"/> instead. 
+        /// </summary>
+        /// <param name="message">The email message.</param>
+        /// <returns>True if the email was sent successfully. False otherwise.</returns>
+        public async Task<bool> SendMail(EmailMessage message)
+        {
+            SmtpResult result = await SendMailAsync(message);
+
+            return result == SmtpResult.OK;
         }
 
         #endregion
@@ -246,7 +278,7 @@ namespace LightBuzz.SMTP
         {
             if (!IsConnected)
             {
-                throw new Exception("Client is not connected");
+                return false;
             }
 
             // get the type of auth
@@ -358,9 +390,9 @@ namespace LightBuzz.SMTP
                 throw new Exception("From field is missing.");
             }
 
-            if (message.To.Count == 0)
+            if (message.To.Count == 0 && message.CC.Count == 0 && message.Bcc.Count == 0)
             {
-                throw new Exception("To field is missing.");
+                throw new Exception("Recipient fields are missing (TO/CC/BCC).");
             }
 
             StringBuilder mailInput = new StringBuilder();
@@ -395,7 +427,7 @@ namespace LightBuzz.SMTP
             }
             else
             {
-                mailInput.AppendFormat("Content-Type: text/plain; charset=\"{0}\"{1}", Encoding.UTF8.WebName, Environment.NewLine);
+                mailInput.AppendFormat("Content-Type: text/plain; charset=\"{0}\"{1}", Encoding.Unicode.WebName, Environment.NewLine);
             }
 
             mailInput.Append(Environment.NewLine);

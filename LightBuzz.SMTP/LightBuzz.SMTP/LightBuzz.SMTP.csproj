@@ -113,6 +113,7 @@
     <Compile Include="SmtpClient.cs" />
     <Compile Include="SmtpCode.cs" />
     <Compile Include="SmtpResponse.cs" />
+    <Compile Include="SmtpResult.cs" />
     <Compile Include="SmtpSocket.cs" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
