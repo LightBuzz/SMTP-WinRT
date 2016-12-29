@@ -16,7 +16,7 @@ Import the assembly to your project and include its namespace:
 ### Send an email message
 *This is an example of using your own SMTP server. Check below for using Gmail and Outlook.*
   
-  	using (SmtpClient client = new SmtpClient("example.com", 25, false, "info@example.com", "Pa$$w0rd")
+  	using (SmtpClient client = new SmtpClient("example.com", 25, false, "info@example.com", "Pa$$w0rd"))
   	{
 	        EmailMessage emailMessage = new EmailMessage();
 	
@@ -24,7 +24,7 @@ Import the assembly to your project and include its namespace:
 	        emailMessage.Subject = "Subject line of your message";
 	        emailMessage.Body = "This is an email sent from a WinRT app!";
 	        
-	        await client.SendEmail(emailMessage);
+	        await client.SendMail(emailMessage);
   	}
   
 ### Credentials for Gmail
@@ -35,7 +35,7 @@ Import the assembly to your project and include its namespace:
   
 #### Important Note for Gmail
 
-	Since this does not use OAUTH2, Gmail considers this a "less secure app".  To use this with Gmail, the "Access for less secure apps" setting on the account will have to be changed to "Enable".
+Since this does not use OAUTH2, Gmail considers this a "less secure app".  To use this with Gmail, the "Access for less secure apps" setting on the account will have to be changed to "Enable".
   
 ### Credentials for Outlook
 
