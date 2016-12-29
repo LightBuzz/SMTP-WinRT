@@ -16,15 +16,17 @@ Import the assembly to your project and include its namespace:
 ### Send an email message
 *This is an example of using your own SMTP server. Check below for using Gmail and Outlook.*
   
-  	using (SmtpClient client = new SmtpClient("example.com", 25, false, "info@example.com", "Pa$$w0rd"))
+  	using (SmtpClient client = new SmtpClient("smtp.example.com", 465, false, "info@example.com", "Pa$$w0rd"))
   	{
 	        EmailMessage emailMessage = new EmailMessage();
 	
-	        emailMessage.To.Add(new EmailRecipient("someone@anotherdomain.com"));
+	        emailMessage.To.Add(new EmailRecipient("someone1@anotherdomain.com"));
+	        emailMessage.CC.Add(new EmailRecipient("someone2@anotherdomain.com"));
+	        emailMessage.Bcc.Add(new EmailRecipient("someone3@anotherdomain.com"));
 	        emailMessage.Subject = "Subject line of your message";
 	        emailMessage.Body = "This is an email sent from a WinRT app!";
 	        
-	        await client.SendMail(emailMessage);
+	        await client.SendMailAsync(emailMessage);
   	}
   
 ### Credentials for Gmail
