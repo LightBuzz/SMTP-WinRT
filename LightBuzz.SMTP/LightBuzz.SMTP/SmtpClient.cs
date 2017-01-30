@@ -159,8 +159,10 @@ namespace LightBuzz.SMTP
             {
                 return SmtpResult.AuthenticationFailed;
             }
-
-            SmtpResponse response = await Socket.Send(string.Format("Mail From:<{0}>", Username));
+            
+            SmtpResponse response = message.Sender != null && message.Sender.Address.Length != 0 ?
+                                    await Socket.Send(string.Format("Mail From:<{0}>", message.Sender.Address)) :
+                                    await Socket.Send(string.Format("Mail From:<{0}>", Username));
 
             if (!response.ContainsStatus(SmtpCode.RequestedMailActionCompleted))
             {
@@ -399,7 +401,15 @@ namespace LightBuzz.SMTP
 
             mailInput.AppendFormat("Date: {0}{1}", DateTime.Now.ToString("ddd, dd MMM yyyy HH:mm:ss +0000"), System.Environment.NewLine);
             mailInput.AppendFormat("X-Priority: {0}{1}", message.Importance.ToXPriority(), System.Environment.NewLine);
-            mailInput.AppendFormat("From: \"{0}\"<{1}>{2}", Username, Username, System.Environment.NewLine);
+            
+            if (message.Sender != null && message.Sender.Address.Length != 0)
+            {
+                mailInput.AppendFormat("From: \"{0}\"<{1}>{2}", (message.Sender.Name.Length != 0) ? message.Sender.Name : message.Sender.Address, message.Sender.Address, System.Environment.NewLine);
+            }
+            else
+            {
+                mailInput.AppendFormat("From: \"{0}\"<{1}>{2}", Username, Username, System.Environment.NewLine);
+            }
 
             mailInput.AppendFormat("To: {0}{1}", string.Join(", ", message.To.Select(r => string.Format("\"{0}\"<{1}>", r.Name, r.Address))), Environment.NewLine);
             if (message.CC.Any())

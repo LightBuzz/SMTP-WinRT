@@ -1,6 +1,6 @@
 # SMTP client for Windows Store
 
-An SMTP client for Windows Store apps (WinRT and Universal). Send emails from within your Windows Universal App.
+An SMTP client for Windows Store apps (WinRT and UWP). Send emails from within your Windows Universal App.
 
 ## Installation
 You can download and build this project or simply install it via NuGet:
@@ -50,6 +50,7 @@ Since this does not use OAUTH2, Gmail considers this a "less secure app".  To us
 * [Alex Borghi](https://it.linkedin.com/pub/alessandro-borghi/75/957/493)
 * [Jochen Kalmbach](http://blog.kalmbach-software.de/)
 * [PrimalZed](https://github.com/PrimalZed)
+* [Radu Mihai Enghis](http://www.enghis.de)
 * Based on code by [Sebastien Pertus](http://bit.ly/1q4focT) from [Microsoft](http://microsoft.com)
 
 ## Blog post
