@@ -427,7 +427,7 @@ namespace LightBuzz.SMTP
             Guid boundary = Guid.NewGuid();
             if (message.Attachments.Any())
             {
-                mailInput.AppendFormat("Content-Type: multipart/mixed; boundary=\"{0}\"{1}", boundary, Environment.NewLine);
+                mailInput.AppendFormat("Content-Type: multipart/mixed; boundary=\"{0}\"; charset=\"{1}\"{2}", boundary, Encoding.UTF8.WebName, Environment.NewLine);
                 mailInput.AppendFormat("{0}", Environment.NewLine);
                 mailInput.AppendFormat("--{0}{1}", boundary, Environment.NewLine);
             }
