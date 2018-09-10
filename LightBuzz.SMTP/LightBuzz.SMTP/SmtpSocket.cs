@@ -97,7 +97,7 @@ namespace LightBuzz.SMTP
                 _reader.InputStreamOptions = InputStreamOptions.Partial;
                 _writer = new DataWriter(_socket.OutputStream);
 
-                SocketProtectionLevel protection = _ssl ? SocketProtectionLevel.Tls10 : SocketProtectionLevel.PlainSocket;
+                SocketProtectionLevel protection = _ssl ? SocketProtectionLevel.Tls12 : SocketProtectionLevel.PlainSocket;
                 await _socket.ConnectAsync(_host, _port.ToString(), protection);
 
                 return await GetResponse("Connect");
@@ -114,7 +114,7 @@ namespace LightBuzz.SMTP
         /// <returns></returns>
         public async Task UpgradeToSslAsync()
         {
-            await _socket.UpgradeToSslAsync(SocketProtectionLevel.Tls10, _host);
+            await _socket.UpgradeToSslAsync(SocketProtectionLevel.Tls12, _host);
         }
 
         /// <summary>
