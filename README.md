@@ -1,3 +1,4 @@
+## Read me
 # SMTP client for Windows Store
 
 An SMTP client for Windows Store apps (WinRT and UWP). Send emails from within your Windows Universal App.
